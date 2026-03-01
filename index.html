@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Activate Your Product — 2-Hour CLO</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+--bg:#0d0d0d;--surface:#131313;--surface-2:#181818;
+--border:#1e1e1e;--border-2:#2a2a2a;
+--text:#e4e5ef;--text-muted:#9ea3ba;--text-dim:#4a4d60;
+--accent:#79EA20;--accent-dim:rgba(121,234,32,.12);--accent-border:rgba(121,234,32,.35);
+--red:#f87171;--red-dim:rgba(248,113,113,.1);
+--radius:8px;--radius-lg:12px;
+}
+html{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+body{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+
+.container{max-width:480px;width:100%}
+
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+.logo-icon{width:36px;height:36px;background:var(--accent);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:var(--bg)}
+.logo-text{font-size:20px;font-weight:700;letter-spacing:-.3px}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px}
+.card h1{font-size:22px;font-weight:700;letter-spacing:-.3px;margin-bottom:6px}
+.card .subtitle{color:var(--text-muted);font-size:14px;margin-bottom:28px}
+
+.product-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--accent-dim);border:1px solid var(--accent-border);border-radius:6px;font-size:13px;font-weight:600;color:var(--accent);margin-bottom:20px}
+
+.field{margin-bottom:20px}
+.field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px;color:var(--text-muted)}
+.field input{width:100%;padding:12px 14px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:var(--radius);color:var(--text);font-size:14px;font-family:inherit;outline:none;transition:border-color .2s}
+.field input:focus{border-color:var(--accent-border)}
+.field input::placeholder{color:var(--text-dim)}
+.field .hint{font-size:12px;color:var(--text-dim);margin-top:4px}
+.field .hint a{color:var(--accent);text-decoration:none}
+
+.btn{width:100%;padding:14px;background:var(--accent);color:var(--bg);border:none;border-radius:var(--radius);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;margin-top:8px}
+.btn:hover{opacity:.9}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+.status{margin-top:20px;padding:14px 16px;border-radius:var(--radius);font-size:14px;display:none}
+.status.success{display:block;background:var(--accent-dim);border:1px solid var(--accent-border);color:var(--accent)}
+.status.error{display:block;background:var(--red-dim);border:1px solid rgba(248,113,113,.3);color:var(--red)}
+.status.loading{display:block;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text-muted)}
+
+.steps{margin-top:32px;padding-top:24px;border-top:1px solid var(--border)}
+.steps h3{font-size:14px;font-weight:600;margin-bottom:12px;color:var(--text-muted)}
+.step{display:flex;align-items:start;gap:10px;margin-bottom:10px;font-size:13px;color:var(--text-dim)}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--surface-2);border:1px solid var(--border-2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;color:var(--text-muted)}
+
+.footer{text-align:center;margin-top:24px;font-size:12px;color:var(--text-dim)}
+.footer a{color:var(--accent);text-decoration:none}
+
+.error-page{text-align:center;padding:48px 24px}
+.error-page h1{font-size:24px;margin-bottom:8px}
+.error-page p{color:var(--text-muted);font-size:15px}
+</style>
+</head>
+<body>
+
+<div class="container" id="app"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// PRODUCT REGISTRY — Add new products here
+// ══════════════════════════════════════════════════════
+const PRODUCTS = {
+  'business-x-ray': {
+    name: 'Business X-Ray',
+    icon: 'X',
+    description: 'the Business X-Ray skill repository',
+    // Set these after LemonSqueezy product is configured
+    store_id: null,
+    product_id: null,
+  },
+  // ── Add future products below ──
+  // 'your-first-ai-employee': {
+  //   name: 'Your First AI Employee',
+  //   icon: 'AI',
+  //   description: 'the AI Employee skill repository',
+  //   store_id: null,
+  //   product_id: null,
+  // },
+};
+
+// ── CONFIG ──
+// Replace with your actual n8n webhook URL
+const N8N_WEBHOOK_URL = 'YOUR_N8N_WEBHOOK_URL_HERE';
+
+// ══════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════
+const params = new URLSearchParams(window.location.search);
+const productSlug = params.get('product');
+const licenseKeyFromUrl = params.get('license_key');
+const product = productSlug ? PRODUCTS[productSlug] : null;
+
+const app = document.getElementById('app');
+
+if (!product) {
+  // No product or invalid product
+  app.innerHTML = `
+    <div class="error-page">
+      <div class="logo"><div class="logo-icon" style="font-size:14px">CLO</div><div class="logo-text">2-Hour CLO</div></div>
+      <h1>Invalid Activation Link</h1>
+      <p>This activation link is missing a product reference. Please use the link from your purchase confirmation email.</p>
+      <div class="footer" style="margin-top:24px">
+        Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+      </div>
+    </div>`;
+} else {
+  document.title = `Activate ${product.name} — 2-Hour CLO`;
+
+  app.innerHTML = `
+    <div class="logo">
+      <div class="logo-icon">${product.icon}</div>
+      <div class="logo-text">${product.name}</div>
+    </div>
+
+    <div class="card">
+      <h1>Activate Your Access</h1>
+      <p class="subtitle">Enter your license key and GitHub username to get access to ${product.description}.</p>
+
+      <form id="activateForm">
+        <div class="field">
+          <label for="licenseKey">License Key</label>
+          <input type="text" id="licenseKey" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" required value="${licenseKeyFromUrl || ''}">
+          <div class="hint">From your purchase confirmation email</div>
+        </div>
+
+        <div class="field">
+          <label for="githubUsername">GitHub Username</label>
+          <input type="text" id="githubUsername" placeholder="your-github-username" required pattern="^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?$">
+          <div class="hint">Your GitHub username (not email). <a href="https://github.com/settings/profile" target="_blank">Find yours here</a></div>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Activate &amp; Get Repo Access</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <div class="steps">
+        <h3>How it works</h3>
+        <div class="step"><div class="step-num">1</div><span>We validate your license key with LemonSqueezy</span></div>
+        <div class="step"><div class="step-num">2</div><span>You receive a GitHub collaborator invitation via email</span></div>
+        <div class="step"><div class="step-num">3</div><span>Accept the invite and clone the private repo</span></div>
+        <div class="step"><div class="step-num">4</div><span>Follow the README to get started</span></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+    </div>`;
+
+  document.getElementById('activateForm').addEventListener('submit', handleActivate);
+}
+
+// ══════════════════════════════════════════════════════
+// ACTIVATION HANDLER
+// ══════════════════════════════════════════════════════
+async function handleActivate(e) {
+  e.preventDefault();
+
+  const licenseKey = document.getElementById('licenseKey').value.trim();
+  const githubUsername = document.getElementById('githubUsername').value.trim();
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!licenseKey || !githubUsername) return;
+
+  statusEl.className = 'status loading';
+  statusEl.textContent = 'Validating your license key...';
+  submitBtn.disabled = true;
+
+  try {
+    // Step 1: Activate the license key with LemonSqueezy
+    const activateRes = await fetch('https://api.lemonsqueezy.com/v1/licenses/activate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        license_key: licenseKey,
+        instance_name: githubUsername
+      })
+    });
+
+    const data = await activateRes.json();
+
+    if (!data.activated && !data.valid) {
+      const errorMsg = data.error || 'Invalid license key or already activated.';
+      throw new Error(errorMsg);
+    }
+
+    // Verify this key belongs to the correct product
+    if (product.store_id && data.meta?.store_id !== product.store_id) {
+      throw new Error('This license key is not valid for this product.');
+    }
+    if (product.product_id && data.meta?.product_id !== product.product_id) {
+      throw new Error('This license key is for a different product.');
+    }
+
+    statusEl.className = 'status loading';
+    statusEl.textContent = 'License valid! Sending GitHub invitation...';
+
+    // Step 2: Trigger n8n webhook with product info
+    const webhookRes = await fetch(N8N_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        product: productSlug,
+        github_username: githubUsername,
+        license_key: licenseKey,
+        customer_email: data.meta?.customer_email || '',
+        customer_name: data.meta?.customer_name || '',
+        instance_id: data.instance?.id || '',
+        activated_at: new Date().toISOString()
+      })
+    });
+
+    if (!webhookRes.ok) {
+      throw new Error('Failed to send invitation. Please email rashid@thepeakperformer.io with your GitHub username.');
+    }
+
+    statusEl.className = 'status success';
+    statusEl.innerHTML = `<strong>You're in!</strong> Check your email for a GitHub collaborator invitation. Accept it to access the ${product.name} repo.`;
+    submitBtn.textContent = 'Activated';
+    submitBtn.disabled = true;
+
+  } catch (err) {
+    statusEl.className = 'status error';
+    statusEl.textContent = err.message;
+    submitBtn.disabled = false;
+  }
+}
+</script>
+
+</body>
+</html>
