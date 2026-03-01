@@ -72,6 +72,7 @@ const PRODUCTS = {
     name: 'Business X-Ray',
     icon: 'X',
     description: 'the Business X-Ray skill repository',
+    course_url: 'https://the2hourclo.github.io/clo-courses/business-x-ray/',
     // Set these after LemonSqueezy product is configured
     store_id: null,
     product_id: null,
@@ -218,52 +219,15 @@ async function handleActivate(e) {
     }
 
     statusEl.className = 'status success';
-    statusEl.innerHTML = `<strong>You're in!</strong> Check your email for a GitHub collaborator invitation from GitHub. Accept it, then follow the steps below.`;
+    statusEl.innerHTML = `<strong>You're in!</strong> Redirecting you to the course...`;
     submitBtn.textContent = 'Activated';
     submitBtn.disabled = true;
 
-    // Show post-activation next steps
-    const stepsEl = document.getElementById('steps-section');
-    if (stepsEl) {
-      stepsEl.innerHTML = `
-        <h3 style="margin-bottom:16px;color:var(--accent)">Next Steps</h3>
-        <div style="display:flex;flex-direction:column;gap:16px">
-          <div style="display:flex;gap:12px;align-items:start">
-            <div style="min-width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">1</div>
-            <div>
-              <strong style="font-size:14px">Accept the GitHub Invitation</strong>
-              <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Check your email for an invite from GitHub. Click "Accept invitation" to get access to the private repo.</p>
-            </div>
-          </div>
-          <div style="display:flex;gap:12px;align-items:start">
-            <div style="min-width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">2</div>
-            <div>
-              <strong style="font-size:14px">Clone the Repo</strong>
-              <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Open your terminal and run:</p>
-              <div style="background:var(--bg);border:1px solid var(--border-2);border-radius:6px;padding:10px 14px;margin-top:6px;font-family:monospace;font-size:13px;color:var(--accent);word-break:break-all;cursor:pointer" onclick="navigator.clipboard.writeText('git clone https://github.com/the2hourclo/${productSlug}.git');this.style.borderColor='var(--accent)';this.innerHTML='Copied!';setTimeout(()=>{this.innerHTML='git clone https://github.com/the2hourclo/${productSlug}.git';this.style.borderColor='var(--border-2)'},2000)" title="Click to copy">git clone https://github.com/the2hourclo/${productSlug}.git</div>
-              <p style="color:var(--text-dim);font-size:12px;margin-top:8px">Don't use git? <a href="https://github.com/the2hourclo/${productSlug}/archive/refs/heads/main.zip" style="color:var(--accent)" target="_blank">Download as ZIP</a> instead — then upload the skill files to your AI platform of choice.</p>
-            </div>
-          </div>
-          <div style="display:flex;gap:12px;align-items:start">
-            <div style="min-width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">3</div>
-            <div>
-              <strong style="font-size:14px">Open the Course</strong>
-              <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Open <strong>course.html</strong> in your browser. It walks you through the entire methodology and shows you exactly how to use the skill.</p>
-            </div>
-          </div>
-          <div style="display:flex;gap:12px;align-items:start">
-            <div style="min-width:28px;height:28px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700">4</div>
-            <div>
-              <strong style="font-size:14px">Run Your X-Ray</strong>
-              <p style="color:var(--text-muted);font-size:13px;margin-top:2px">Open Claude Code in the repo folder and type: <strong style="color:var(--accent)">/business-x-ray</strong> — the AI interviews you about your business and generates your complete X-Ray.</p>
-            </div>
-          </div>
-        </div>
-        <div style="background:var(--surface-2);border-left:3px solid var(--accent);padding:14px 16px;border-radius:0 6px 6px 0;margin-top:20px;font-size:13px;color:var(--text-muted)">
-          <strong style="color:var(--text)">Need help?</strong> Email <a href="mailto:rashid@thepeakperformer.io" style="color:var(--accent)">rashid@thepeakperformer.io</a> or join the live workshop where I walk you through everything step by step.
-        </div>
-      `;
-    }
+    // Redirect to the course page after brief delay
+    const courseUrl = product.course_url || `welcome.html?product=${productSlug}`;
+    setTimeout(() => {
+      window.location.href = courseUrl;
+    }, 1500);
 
   } catch (err) {
     statusEl.className = 'status error';
