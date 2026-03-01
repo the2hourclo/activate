@@ -104,7 +104,6 @@ if (!product) {
   // No product or invalid product
   app.innerHTML = `
     <div class="error-page">
-      <div class="logo"><div class="logo-icon" style="font-size:14px">CLO</div><div class="logo-text">2-Hour CLO</div></div>
       <h1>Invalid Activation Link</h1>
       <p>This activation link is missing a product reference. Please use the link from your purchase confirmation email.</p>
       <div class="footer" style="margin-top:24px">
@@ -115,11 +114,6 @@ if (!product) {
   document.title = `Activate ${product.name} — 2-Hour CLO`;
 
   app.innerHTML = `
-    <div class="logo">
-      <div class="logo-icon">${product.icon}</div>
-      <div class="logo-text">${product.name}</div>
-    </div>
-
     <div class="card">
       <h1>Activate Your Access</h1>
       <p class="subtitle">Enter your license key and GitHub username to get access to ${product.description}.</p>
