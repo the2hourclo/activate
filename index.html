@@ -73,6 +73,7 @@ const PRODUCTS = {
     icon: 'X',
     description: 'the Business X-Ray skill repository',
     course_url: 'https://the2hourclo.github.io/clo-courses/business-x-ray/',
+    repo: 'business-x-ray',
     store_id: 10600,
     product_id: 747707,
   },
@@ -81,6 +82,7 @@ const PRODUCTS = {
     icon: 'MC',
     description: 'the Meta Create Skill repository',
     course_url: 'https://the2hourclo.github.io/clo-courses/meta-create-skill/',
+    repo: 'meta-create-skill-standalone',
     store_id: 10600,
     product_id: 962340,
   },
@@ -212,6 +214,7 @@ async function handleActivate(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         product: productSlug,
+        repo: product.repo || productSlug,
         github_username: githubUsername,
         license_key: licenseKey,
         customer_email: data.meta?.customer_email || '',
