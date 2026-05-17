@@ -57,6 +57,18 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;pad
 .error-page{text-align:center;padding:48px 24px}
 .error-page h1{font-size:24px;margin-bottom:8px}
 .error-page p{color:var(--text-muted);font-size:15px}
+
+.install-step{margin-bottom:18px}
+.install-step-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.install-step-num{width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0}
+.install-step-title{font-size:14px;font-weight:600;color:var(--text)}
+.cmd-block{position:relative;background:#000;border:1px solid var(--border-2);border-radius:var(--radius);padding:12px 14px;padding-right:60px;font-family:'SF Mono','Monaco','Consolas',monospace;font-size:13px;color:var(--accent);overflow-x:auto;white-space:nowrap}
+.copy-btn{position:absolute;top:8px;right:8px;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text-muted);font-size:11px;font-weight:600;padding:4px 10px;border-radius:4px;cursor:pointer;transition:all .15s}
+.copy-btn:hover{background:var(--accent-dim);color:var(--accent);border-color:var(--accent-border)}
+.copy-btn.copied{background:var(--accent);color:var(--bg);border-color:var(--accent)}
+.license-display{background:var(--surface-2);border:1px dashed var(--border-2);border-radius:var(--radius);padding:10px 14px;font-family:'SF Mono','Monaco','Consolas',monospace;font-size:12px;color:var(--text-muted);word-break:break-all;margin-bottom:12px}
+.course-cta{display:block;text-align:center;margin-top:24px;padding:14px;background:transparent;color:var(--accent);border:1px solid var(--accent-border);border-radius:var(--radius);font-size:14px;font-weight:600;text-decoration:none;transition:all .2s}
+.course-cta:hover{background:var(--accent-dim)}
 </style>
 </head>
 <body>
@@ -85,6 +97,16 @@ const PRODUCTS = {
     repo: 'meta-create-skill-standalone',
     store_id: 10600,
     product_id: 962340,
+  },
+  'clo-community': {
+    name: 'CLO Community',
+    icon: 'CC',
+    description: 'the CLO-OS Community Bundle (clo-community plugin)',
+    distribution_type: 'skillstack',
+    skillstack_slug: 'clo-community',
+    course_url: 'https://the2hourclo.github.io/clo-courses/clo-course/#claude-code-101',
+    store_id: 10600,
+    product_id: 926993,
   },
   // ── Add future products below ──
   // 'your-first-ai-employee': {
@@ -123,6 +145,17 @@ if (!product) {
 } else {
   document.title = `Activate ${product.name} — 2-Hour CLO`;
 
+  if (product.distribution_type === 'skillstack') {
+    renderSkillStackForm();
+  } else {
+    renderCollaboratorForm();
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// RENDERERS — different flows per distribution_type
+// ══════════════════════════════════════════════════════
+function renderCollaboratorForm() {
   app.innerHTML = `
     <div class="card">
       <h1>Activate Your Access</h1>
@@ -160,6 +193,41 @@ if (!product) {
     </div>`;
 
   document.getElementById('activateForm').addEventListener('submit', handleActivate);
+}
+
+function renderSkillStackForm() {
+  app.innerHTML = `
+    <div class="card">
+      <div class="product-badge">${product.name}</div>
+      <h1>Activate Your License</h1>
+      <p class="subtitle">Verify your license key, then we'll show you how to install ${product.description} in Claude Code.</p>
+
+      <form id="activateForm">
+        <div class="field">
+          <label for="licenseKey">License Key</label>
+          <input type="text" id="licenseKey" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" required value="${licenseKeyFromUrl || ''}">
+          <div class="hint">From your purchase confirmation email</div>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Verify License &amp; Show Install Steps</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <div class="steps" id="steps-section">
+        <h3>How it works</h3>
+        <div class="step"><div class="step-num">1</div><span>We validate your license key with LemonSqueezy</span></div>
+        <div class="step"><div class="step-num">2</div><span>You see the Claude Code install commands on this page</span></div>
+        <div class="step"><div class="step-num">3</div><span>Run them in Claude Code &amp; paste your license when prompted</span></div>
+        <div class="step"><div class="step-num">4</div><span>Continue to the onboarding course when ready</span></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+    </div>`;
+
+  document.getElementById('activateForm').addEventListener('submit', handleSkillStackActivate);
 }
 
 // ══════════════════════════════════════════════════════
@@ -244,6 +312,143 @@ async function handleActivate(e) {
     statusEl.textContent = err.message;
     submitBtn.disabled = false;
   }
+}
+
+// ══════════════════════════════════════════════════════
+// SKILLSTACK ACTIVATION HANDLER
+// Validates license, then shows install commands inline
+// ══════════════════════════════════════════════════════
+async function handleSkillStackActivate(e) {
+  e.preventDefault();
+
+  const licenseKey = document.getElementById('licenseKey').value.trim();
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!licenseKey) return;
+
+  statusEl.className = 'status loading';
+  statusEl.textContent = 'Validating your license key...';
+  submitBtn.disabled = true;
+
+  try {
+    // Validate license against LemonSqueezy
+    const validateRes = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ license_key: licenseKey })
+    });
+
+    const data = await validateRes.json();
+
+    if (!data.valid) {
+      throw new Error(data.error || 'Invalid license key. Check your purchase confirmation email.');
+    }
+
+    // Verify the key belongs to this specific product
+    if (product.store_id && data.meta?.store_id !== product.store_id) {
+      throw new Error('This license key is not valid for this product.');
+    }
+    if (product.product_id && data.meta?.product_id !== product.product_id) {
+      throw new Error('This license key is for a different product. Make sure you used the link from your ' + product.name + ' confirmation email.');
+    }
+
+    // License valid — swap UI to install commands
+    renderInstallCommands(licenseKey);
+
+  } catch (err) {
+    statusEl.className = 'status error';
+    statusEl.textContent = err.message;
+    submitBtn.disabled = false;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// INSTALL COMMANDS UI
+// Renders after successful license validation
+// ══════════════════════════════════════════════════════
+function renderInstallCommands(licenseKey) {
+  const slug = product.skillstack_slug;
+  const cmd1 = '/plugin marketplace add https://github.com/SkillStacks/skillstack.git';
+  const cmd2 = '/plugin install ' + slug + '@skillstack-marketplace';
+  const cmd3 = '/restart';
+  const cmd4 = '/activate-license';
+
+  app.innerHTML = `
+    <div class="card">
+      <div class="product-badge">${product.name}</div>
+      <h1>License Verified ✓</h1>
+      <p class="subtitle">Run these commands in Claude Code to install ${product.description}.</p>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">1</div>
+          <div class="install-step-title">Add the SkillStack marketplace (one-time)</div>
+        </div>
+        <div class="cmd-block">
+          <span id="cmd1">${cmd1}</span>
+          <button class="copy-btn" data-copy="cmd1">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">2</div>
+          <div class="install-step-title">Install ${slug}</div>
+        </div>
+        <div class="cmd-block">
+          <span id="cmd2">${cmd2}</span>
+          <button class="copy-btn" data-copy="cmd2">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">3</div>
+          <div class="install-step-title">Restart Claude Code</div>
+        </div>
+        <div class="cmd-block">
+          <span id="cmd3">${cmd3}</span>
+          <button class="copy-btn" data-copy="cmd3">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">4</div>
+          <div class="install-step-title">Activate your license (paste the key below when prompted)</div>
+        </div>
+        <div class="cmd-block">
+          <span id="cmd4">${cmd4}</span>
+          <button class="copy-btn" data-copy="cmd4">Copy</button>
+        </div>
+        <div class="license-display" id="license-display">${licenseKey}</div>
+        <button class="copy-btn" data-copy="license-display" style="position:static;display:inline-block;margin-top:-4px">Copy license key</button>
+      </div>
+
+      ${product.course_url ? '<a class="course-cta" href="' + product.course_url + '">Continue to the onboarding course →</a>' : ''}
+    </div>
+
+    <div class="footer">
+      Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+    </div>`;
+
+  // Wire up copy buttons
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.copy;
+      const text = document.getElementById(targetId).textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+  });
 }
 </script>
 
