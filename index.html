@@ -98,6 +98,15 @@ const PRODUCTS = {
     store_id: 10600,
     product_id: 962340,
   },
+  'aieb': {
+    name: 'AI Employee Builder',
+    icon: 'AI',
+    description: 'the AI Employee Builder MCP shell',
+    course_url: 'https://the2hourclo.github.io/clo-courses/clo-course/?product=aieb',
+    store_id: 10600,
+    product_id: 1019512,
+    distribution_type: 'mcp',
+  },
   // clo-community is gated by the course page itself —
   // LS redirects directly to: https://the2hourclo.github.io/clo-courses/clo-community/?license_key={license_key}
   //
@@ -138,7 +147,9 @@ if (!product) {
 } else {
   document.title = `Activate ${product.name} — 2-Hour CLO`;
 
-  if (product.distribution_type === 'skillstack') {
+  if (product.distribution_type === 'mcp') {
+    renderMcpForm();
+  } else if (product.distribution_type === 'skillstack') {
     renderSkillStackForm();
   } else {
     renderCollaboratorForm();
@@ -221,6 +232,41 @@ function renderSkillStackForm() {
     </div>`;
 
   document.getElementById('activateForm').addEventListener('submit', handleSkillStackActivate);
+}
+
+function renderMcpForm() {
+  app.innerHTML = `
+    <div class="card">
+      <div class="product-badge">${product.name}</div>
+      <h1>Activate Your License</h1>
+      <p class="subtitle">Verify your license key, then we'll show you how to install the thin MCP shell in Claude Code.</p>
+
+      <form id="activateForm">
+        <div class="field">
+          <label for="licenseKey">License Key</label>
+          <input type="text" id="licenseKey" placeholder="XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX" required value="${licenseKeyFromUrl || ''}">
+          <div class="hint">From your purchase confirmation email</div>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">Verify License &amp; Show MCP Setup</button>
+      </form>
+
+      <div id="status" class="status"></div>
+
+      <div class="steps" id="steps-section">
+        <h3>How it works</h3>
+        <div class="step"><div class="step-num">1</div><span>We validate your license key with LemonSqueezy</span></div>
+        <div class="step"><div class="step-num">2</div><span>You install the free thin plugin shell</span></div>
+        <div class="step"><div class="step-num">3</div><span>The MCP activates this computer on first use</span></div>
+        <div class="step"><div class="step-num">4</div><span>Paid AIEB skills load from the hosted MCP server</span></div>
+      </div>
+    </div>
+
+    <div class="footer">
+      Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+    </div>`;
+
+  document.getElementById('activateForm').addEventListener('submit', handleMcpActivate);
 }
 
 // ══════════════════════════════════════════════════════
@@ -356,10 +402,130 @@ async function handleSkillStackActivate(e) {
   }
 }
 
+async function handleMcpActivate(e) {
+  e.preventDefault();
+
+  const licenseKey = document.getElementById('licenseKey').value.trim();
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!licenseKey) return;
+
+  statusEl.className = 'status loading';
+  statusEl.textContent = 'Validating your license key...';
+  submitBtn.disabled = true;
+
+  try {
+    const validateRes = await fetch('https://api.lemonsqueezy.com/v1/licenses/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ license_key: licenseKey })
+    });
+
+    const data = await validateRes.json();
+
+    if (!data.valid) {
+      throw new Error(data.error || 'Invalid license key. Check your purchase confirmation email.');
+    }
+
+    if (product.store_id && data.meta?.store_id !== product.store_id) {
+      throw new Error('This license key is not valid for this product.');
+    }
+    if (product.product_id && data.meta?.product_id !== product.product_id) {
+      throw new Error('This license key is for a different product. Make sure you used the link from your ' + product.name + ' confirmation email.');
+    }
+
+    renderMcpInstallCommands(licenseKey);
+
+  } catch (err) {
+    statusEl.className = 'status error';
+    statusEl.textContent = err.message;
+    submitBtn.disabled = false;
+  }
+}
+
 // ══════════════════════════════════════════════════════
 // INSTALL COMMANDS UI
 // Renders after successful license validation
 // ══════════════════════════════════════════════════════
+function renderMcpInstallCommands(licenseKey) {
+  const cmd1 = '/plugin marketplace add https://github.com/the2hourclo/aieb-thin-plugin';
+  const cmd2 = '/plugin install ai-employee-builder-mcp@aieb-thin-plugin';
+  const cmd3 = '/reload-plugins';
+  const setupPrompt = `Set up AI Employee Builder MCP for me. Use AIEB_MCP_URL=https://aieb-gated-mcp.vercel.app/mcp and AIEB_ACTIVATE_URL=https://aieb-gated-mcp.vercel.app/activate. My Lemon Squeezy license key is: ${licenseKey}. After config is saved, reload Claude Code and test the aieb get_skill tool with skill_id meta-create-skill and path SKILL.md.`;
+
+  app.innerHTML = `
+    <div class="card">
+      <div class="product-badge">${product.name}</div>
+      <h1>License Verified</h1>
+      <p class="subtitle">Install the free thin plugin shell, then let Claude add your license to the MCP config.</p>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">1</div>
+          <div class="install-step-title">Add the AIEB thin-plugin marketplace</div>
+        </div>
+        <div class="cmd-block">
+          <span id="mcpCmd1">${cmd1}</span>
+          <button class="copy-btn" data-copy="mcpCmd1">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">2</div>
+          <div class="install-step-title">Install the thin MCP shell</div>
+        </div>
+        <div class="cmd-block">
+          <span id="mcpCmd2">${cmd2}</span>
+          <button class="copy-btn" data-copy="mcpCmd2">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">3</div>
+          <div class="install-step-title">Reload Claude Code</div>
+        </div>
+        <div class="cmd-block">
+          <span id="mcpCmd3">${cmd3}</span>
+          <button class="copy-btn" data-copy="mcpCmd3">Copy</button>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-step-header">
+          <div class="install-step-num">4</div>
+          <div class="install-step-title">Ask Claude to add your MCP license config</div>
+        </div>
+        <div class="license-display" id="setupPrompt">${setupPrompt}</div>
+        <button class="copy-btn" data-copy="setupPrompt" style="position:static;display:inline-block;margin-top:-4px">Copy setup prompt</button>
+      </div>
+
+      ${product.course_url ? '<a class="course-cta" href="' + product.course_url + '">Continue to the onboarding course</a>' : ''}
+    </div>
+
+    <div class="footer">
+      Questions? Email <a href="mailto:rashid@thepeakperformer.io">rashid@thepeakperformer.io</a>
+    </div>`;
+
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const targetId = btn.dataset.copy;
+      const text = document.getElementById(targetId).textContent.trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const originalText = btn.textContent;
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = originalText;
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+  });
+}
+
 function renderInstallCommands(licenseKey) {
   const slug = product.skillstack_slug;
   const cmd1 = '/plugin marketplace add https://github.com/SkillStacks/skillstack.git';
