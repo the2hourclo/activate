@@ -450,9 +450,9 @@ async function handleMcpActivate(e) {
 // ══════════════════════════════════════════════════════
 function renderMcpInstallCommands(licenseKey) {
   const cmd1 = '/plugin marketplace add https://github.com/the2hourclo/aieb-thin-plugin';
-  const cmd2 = '/plugin install ai-employee-builder-mcp@aieb-thin-plugin';
+  const cmd2 = '/plugin install ai-employee-builder@aieb-thin-plugin';
   const cmd3 = '/reload-plugins';
-  const setupPrompt = `Set up AI Employee Builder MCP for me. Use AIEB_MCP_URL=https://aieb-gated-mcp.vercel.app/mcp and AIEB_ACTIVATE_URL=https://aieb-gated-mcp.vercel.app/activate. My Lemon Squeezy license key is: ${licenseKey}. After config is saved, reload Claude Code and test the aieb get_skill tool with skill_id meta-create-skill and path SKILL.md.`;
+  const setupPrompt = `Run /setup-aieb for me and use this Lemon Squeezy license key when asked: ${licenseKey}. After config is saved, reload Claude Code and test the aieb get_skill tool with skill_id meta-create-skill and path SKILL.md.`;
 
   app.innerHTML = `
     <div class="card">
